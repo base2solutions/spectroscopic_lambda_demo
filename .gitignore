@@ -1,0 +1,13 @@
+/target
+/src/cpp/CMakeCache.txt
+/src/cpp/CMakeFiles/
+/src/cpp/Makefile
+/src/cpp/cmake_install.cmake
+/src/generate_spectroscopic_data.dir/
+generate_spectroscopic_data
+/output/*.spr
+CMakeCache.txt
+/CMakeFiles
+CMakeLists.txt
+Makefile
+cmake_install.cmake
