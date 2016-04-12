@@ -11,3 +11,5 @@ CMakeCache.txt
 CMakeLists.txt
 Makefile
 cmake_install.cmake
+/src/erlang/*.beam
+/src/erlang/*.dump
