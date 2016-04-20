@@ -1,4 +1,5 @@
 (ns spectral-matching
+  (:gen-class)
   [:require [clojure.pprint]
             [clojure.core.reducers :as r]])
 
@@ -35,17 +36,15 @@
 (defn- create-compare-sample-fn
   [sample-data]
   (fn
-    ([] [0 0.0])
-    ([accumulator k v]
+    ([k v]
       (let [sample-value (get sample-data k)]
-        [(inc (first accumulator))
-         (+ (second accumulator) (percentage-fn sample-value v))]))))
+        (percentage-fn sample-value v)))))
 
 (defn- compare-sample-to-known
   [sample-data known-data]
-  (-> (r/reduce (create-compare-sample-fn sample-data) known-data)
-      (#(if (pos? (second %))
-          (/ (second %) (first %))
+  (-> (r/fold + (r/map (create-compare-sample-fn sample-data) known-data))
+      (#(if (seq sample-data)
+          (/ % (count sample-data))
           0.0))))
 
 (defn- create-compare-reduce-fn
