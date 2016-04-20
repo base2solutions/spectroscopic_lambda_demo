@@ -11,19 +11,20 @@
 (defn- get-sample-data
   [sample-filename]
   (with-open [rdr (clojure.java.io/reader sample-filename)]
-    (reduce reduce-fn {} (line-seq rdr))))
+    (r/reduce reduce-fn {} (line-seq rdr))))
 
-(defn- known-data-reduce-fn
-  [sample-folder result-map index]
-  (let [sample-name (str "sample_" index)
-        sample-filename (str sample-folder "/" sample-name ".spr")
-        sample-data (get-sample-data sample-filename)]
-    (assoc result-map sample-name sample-data)))
+(defn- create-known-data-fn
+  [sample-folder]
+  (fn [index]
+    (let [sample-name (str "sample_" index)
+          sample-filename (str sample-folder "/" sample-name ".spr")
+          sample-data (get-sample-data sample-filename)]
+      {sample-name sample-data})))
 
 (defn- get-known-data
   [sample-folder range-begin range-end]
-  (reduce (partial known-data-reduce-fn sample-folder)
-          {} (range range-begin range-end)))
+  (let [map-fn (create-known-data-fn sample-folder)]
+    (r/fold merge (r/map map-fn (range range-begin range-end)))))
 
 (defn- percentage-fn
   [sample known]
