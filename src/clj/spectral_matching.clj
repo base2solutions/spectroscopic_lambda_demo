@@ -1,5 +1,6 @@
 (ns spectral-matching
-  [:require [clojure.pprint]])
+  [:require [clojure.pprint]
+            [clojure.core.reducers :as r]])
 
 (defn- reduce-fn
   [result-map line-data]
@@ -31,35 +32,39 @@
       (/ sample known))
     (catch java.lang.ArithmeticException ae 1)))
 
-(defn- compare-sample-fn
-  [sample-data known-data sum lookup-key]
-  (let [sample (get sample-data lookup-key)
-        known (get known-data lookup-key)
-        percentage (percentage-fn sample known)]
-    (+ sum percentage)))
+(defn- create-compare-sample-fn
+  [sample-data]
+  (fn
+    ([] [0 0.0])
+    ([accumulator k v]
+      (let [sample-value (get sample-data k)]
+        [(inc (first accumulator))
+         (+ (second accumulator) (percentage-fn sample-value v))]))))
 
 (defn- compare-sample-to-known
   [sample-data known-data]
-  (let [compare-sum (reduce (partial compare-sample-fn sample-data known-data) 0 (keys known-data))]
-    (/ compare-sum (count (keys known-data)))))
+  (-> (r/reduce (create-compare-sample-fn sample-data) known-data)
+      (#(if (pos? (second %))
+          (/ (second %) (first %))
+          0.0))))
 
-(defn- compare-reduce-fn
-  [sample-data results known-data]
-  (let [[known-sample data] known-data
-        compare-data (compare-sample-to-known sample-data data)]
-    (cond
-      (empty? results)
-        [known-sample compare-data]
-      (> compare-data (second results))
-        [known-sample compare-data]
-      :else
-        results)))
-      
+(defn- create-compare-reduce-fn
+  [sample-data]
+  (fn
+    ([] [])
+    ([results known-sample data]
+      (let [compare-data (compare-sample-to-known sample-data data)]
+        (cond
+          (empty? results)
+            [known-sample compare-data]
+          (> compare-data (second results))
+            [known-sample compare-data]
+          :else
+            results)))))
 
 (defn- compare-sample-to-knowns
   [sample-data known-datas]
-  (reduce (partial compare-reduce-fn sample-data) [] known-datas)
-)
+  (r/reduce (create-compare-reduce-fn sample-data) known-datas))
 
 (defn -main [& args]
   ""
@@ -68,7 +73,5 @@
         range-end (Integer/parseInt range-end)
         known-datas (get-known-data sample-folder range-begin range-end)
         sample-data (get-sample-data (str sample-folder "/sample.spr"))
-        sample-compares (compare-sample-to-knowns sample-data known-datas)
-        ]
-    (clojure.pprint/pprint sample-compares)
-))
+        sample-compares (compare-sample-to-knowns sample-data known-datas)]
+    (clojure.pprint/pprint sample-compares)))
